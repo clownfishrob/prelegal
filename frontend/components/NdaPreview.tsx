@@ -7,9 +7,14 @@ interface NdaPreviewProps {
   formData: NdaFormData;
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 function formatDate(dateStr: string): string {
   if (!dateStr) return "___________";
   const date = new Date(dateStr + "T00:00:00");
+  if (isNaN(date.getTime())) return "___________";
   return date.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -66,39 +71,61 @@ function renderStandardTerms(
   formData: NdaFormData
 ): string {
   let text = template;
-  // Strip HTML span tags and replace with the form values
   text = text.replace(
     /<span class="coverpage_link">Purpose<\/span>/g,
-    fillPlaceholder(formData.purpose, "Purpose")
+    escapeHtml(fillPlaceholder(formData.purpose, "Purpose"))
   );
   text = text.replace(
     /<span class="coverpage_link">Effective Date<\/span>/g,
-    formatDate(formData.effectiveDate)
+    escapeHtml(formatDate(formData.effectiveDate))
   );
   text = text.replace(
     /<span class="coverpage_link">MNDA Term<\/span>/g,
-    formData.mndaTermType === "expires"
-      ? `${formData.mndaTermYears} year(s)`
-      : "until terminated"
+    escapeHtml(
+      formData.mndaTermType === "expires"
+        ? `${formData.mndaTermYears} year(s)`
+        : "until terminated"
+    )
   );
   text = text.replace(
     /<span class="coverpage_link">Term of Confidentiality<\/span>/g,
-    formData.confidentialityTermType === "years"
-      ? `${formData.confidentialityTermYears} year(s)`
-      : "perpetuity"
+    escapeHtml(
+      formData.confidentialityTermType === "years"
+        ? `${formData.confidentialityTermYears} year(s)`
+        : "perpetuity"
+    )
   );
   text = text.replace(
     /<span class="coverpage_link">Governing Law<\/span>/g,
-    fillPlaceholder(formData.governingLaw, "___________")
+    escapeHtml(fillPlaceholder(formData.governingLaw, "___________"))
   );
   text = text.replace(
     /<span class="coverpage_link">Jurisdiction<\/span>/g,
-    fillPlaceholder(formData.jurisdiction, "___________")
+    escapeHtml(fillPlaceholder(formData.jurisdiction, "___________"))
   );
   // Remove any remaining span tags
   text = text.replace(/<span[^>]*>/g, "");
   text = text.replace(/<\/span>/g, "");
   return text;
+}
+
+function stripMarkdownLinks(text: string): string {
+  return text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+}
+
+function renderInlineParts(line: string): React.ReactNode[] {
+  // First strip markdown links, then handle bold
+  const cleaned = stripMarkdownLinks(line);
+  const parts = cleaned.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, pi) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={pi} className="font-semibold text-gray-900">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      <span key={pi}>{part}</span>
+    )
+  );
 }
 
 function MarkdownBlock({ content }: { content: string }) {
@@ -121,7 +148,6 @@ function MarkdownBlock({ content }: { content: string }) {
         </h2>
       );
     } else if (line.startsWith("|")) {
-      // Collect all table lines
       const tableLines: string[] = [line];
       while (i + 1 < lines.length && lines[i + 1].startsWith("|")) {
         i++;
@@ -158,19 +184,9 @@ function MarkdownBlock({ content }: { content: string }) {
     } else if (line.trim() === "") {
       elements.push(<div key={i} className="h-2" />);
     } else {
-      // Render inline bold
-      const parts = line.split(/(\*\*[^*]+\*\*)/g);
       elements.push(
         <p key={i} className="text-sm text-gray-700 leading-relaxed mb-1">
-          {parts.map((part, pi) =>
-            part.startsWith("**") && part.endsWith("**") ? (
-              <strong key={pi} className="font-semibold text-gray-900">
-                {part.slice(2, -2)}
-              </strong>
-            ) : (
-              <span key={pi}>{part}</span>
-            )
-          )}
+          {renderInlineParts(line)}
         </p>
       );
     }
@@ -198,4 +214,4 @@ export default function NdaPreview({ standardTerms, formData }: NdaPreviewProps)
   );
 }
 
-export { renderCoverPage, renderStandardTerms, fillPlaceholder, formatDate };
+export { renderCoverPage, renderStandardTerms, fillPlaceholder, formatDate, escapeHtml };

@@ -9,10 +9,9 @@ import {
 import { createElement } from "react";
 import { NdaFormData } from "./nda-template";
 import {
-  renderCoverPage,
-  renderStandardTerms,
   fillPlaceholder,
   formatDate,
+  escapeHtml,
 } from "@/components/NdaPreview";
 
 const styles = StyleSheet.create({
@@ -27,12 +26,6 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     marginBottom: 12,
     textAlign: "center",
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontFamily: "Helvetica-Bold",
-    marginTop: 12,
-    marginBottom: 6,
   },
   paragraph: {
     marginBottom: 6,
@@ -58,13 +51,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   tableRow: {
-    flexDirection: "row",
+    flexDirection: "row" as const,
     borderBottomWidth: 1,
     borderBottomColor: "#cccccc",
     paddingVertical: 4,
   },
   tableHeader: {
-    flexDirection: "row",
+    flexDirection: "row" as const,
     borderBottomWidth: 2,
     borderBottomColor: "#333333",
     paddingVertical: 4,
@@ -101,6 +94,14 @@ function CoverPagePdf({ formData }: { formData: NdaFormData }) {
 
   const fp = (val: string) => fillPlaceholder(val, "___________");
 
+  const partyRows = [
+    { label: "Name", v1: fp(formData.party1Name), v2: fp(formData.party2Name) },
+    { label: "Title", v1: fp(formData.party1Title), v2: fp(formData.party2Title) },
+    { label: "Company", v1: fp(formData.party1Company), v2: fp(formData.party2Company) },
+    { label: "Notice Address", v1: fp(formData.party1Address), v2: fp(formData.party2Address) },
+    { label: "Date", v1: formatDate(formData.effectiveDate), v2: formatDate(formData.effectiveDate) },
+  ];
+
   return createElement(
     View,
     null,
@@ -135,7 +136,6 @@ function CoverPagePdf({ formData }: { formData: NdaFormData }) {
       { style: [styles.paragraph, { marginTop: 12 }] },
       "By signing this Cover Page, each party agrees to enter into this MNDA as of the Effective Date."
     ),
-    // Party table
     createElement(
       View,
       { style: styles.table },
@@ -146,54 +146,50 @@ function CoverPagePdf({ formData }: { formData: NdaFormData }) {
         createElement(Text, { style: [styles.tableCell, styles.bold] }, "Party 1"),
         createElement(Text, { style: [styles.tableCell, styles.bold] }, "Party 2")
       ),
-      ...["Name", "Title", "Company", "Notice Address", "Date"].map((label) => {
-        let v1 = "";
-        let v2 = "";
-        if (label === "Name") { v1 = fp(formData.party1Name); v2 = fp(formData.party2Name); }
-        else if (label === "Title") { v1 = fp(formData.party1Title); v2 = fp(formData.party2Title); }
-        else if (label === "Company") { v1 = fp(formData.party1Company); v2 = fp(formData.party2Company); }
-        else if (label === "Notice Address") { v1 = fp(formData.party1Address); v2 = fp(formData.party2Address); }
-        else if (label === "Date") { v1 = formatDate(formData.effectiveDate); v2 = formatDate(formData.effectiveDate); }
-        return createElement(
+      ...partyRows.map((row) =>
+        createElement(
           View,
-          { key: label, style: styles.tableRow },
-          createElement(Text, { style: styles.tableCellLabel }, label),
-          createElement(Text, { style: styles.tableCell }, v1),
-          createElement(Text, { style: styles.tableCell }, v2)
-        );
-      })
+          { key: row.label, style: styles.tableRow },
+          createElement(Text, { style: styles.tableCellLabel }, row.label),
+          createElement(Text, { style: styles.tableCell }, row.v1),
+          createElement(Text, { style: styles.tableCell }, row.v2)
+        )
+      )
     )
   );
 }
 
 function parseStandardTermsForPdf(template: string, formData: NdaFormData) {
   let text = template;
-  text = text.replace(/<span class="coverpage_link">Purpose<\/span>/g, fillPlaceholder(formData.purpose, "Purpose"));
-  text = text.replace(/<span class="coverpage_link">Effective Date<\/span>/g, formatDate(formData.effectiveDate));
+  text = text.replace(/<span class="coverpage_link">Purpose<\/span>/g, escapeHtml(fillPlaceholder(formData.purpose, "Purpose")));
+  text = text.replace(/<span class="coverpage_link">Effective Date<\/span>/g, escapeHtml(formatDate(formData.effectiveDate)));
   text = text.replace(/<span class="coverpage_link">MNDA Term<\/span>/g,
-    formData.mndaTermType === "expires" ? `${formData.mndaTermYears} year(s)` : "until terminated"
+    escapeHtml(formData.mndaTermType === "expires" ? `${formData.mndaTermYears} year(s)` : "until terminated")
   );
   text = text.replace(/<span class="coverpage_link">Term of Confidentiality<\/span>/g,
-    formData.confidentialityTermType === "years" ? `${formData.confidentialityTermYears} year(s)` : "perpetuity"
+    escapeHtml(formData.confidentialityTermType === "years" ? `${formData.confidentialityTermYears} year(s)` : "perpetuity")
   );
-  text = text.replace(/<span class="coverpage_link">Governing Law<\/span>/g, fillPlaceholder(formData.governingLaw, "___________"));
-  text = text.replace(/<span class="coverpage_link">Jurisdiction<\/span>/g, fillPlaceholder(formData.jurisdiction, "___________"));
+  text = text.replace(/<span class="coverpage_link">Governing Law<\/span>/g, escapeHtml(fillPlaceholder(formData.governingLaw, "___________")));
+  text = text.replace(/<span class="coverpage_link">Jurisdiction<\/span>/g, escapeHtml(fillPlaceholder(formData.jurisdiction, "___________")));
   text = text.replace(/<span[^>]*>/g, "");
   text = text.replace(/<\/span>/g, "");
 
   const lines = text.split("\n").filter((l) => l.trim() !== "");
   const elements: ReturnType<typeof createElement>[] = [];
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Strip markdown links and bold markers for PDF
+    let cleanLine = line.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+    cleanLine = cleanLine.replace(/\*\*/g, "");
+
     if (line.startsWith("# ")) {
       elements.push(
-        createElement(Text, { key: line, style: styles.title }, line.slice(2))
+        createElement(Text, { key: `line-${i}`, style: styles.title }, cleanLine.slice(2))
       );
     } else {
-      // Strip markdown bold markers for PDF
-      const cleanLine = line.replace(/\*\*/g, "");
       elements.push(
-        createElement(Text, { key: line, style: styles.paragraph }, cleanLine)
+        createElement(Text, { key: `line-${i}`, style: styles.paragraph }, cleanLine)
       );
     }
   }
@@ -210,10 +206,14 @@ export async function generateNdaPdf(
     null,
     createElement(
       Page,
-      { size: "A4", style: styles.page },
+      { size: "A4", style: styles.page, wrap: true },
       createElement(CoverPagePdf, { formData }),
       createElement(View, { style: styles.divider }),
-      ...parseStandardTermsForPdf(standardTerms, formData),
+      createElement(
+        View,
+        { wrap: true },
+        ...parseStandardTermsForPdf(standardTerms, formData)
+      ),
       createElement(
         Text,
         { style: styles.footer },

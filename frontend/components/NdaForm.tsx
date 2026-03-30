@@ -11,14 +11,16 @@ interface NdaFormProps {
 
 function Field({
   label,
+  id,
   children,
 }: {
   label: string;
+  id?: string;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
         {label}
       </label>
       {children}
@@ -48,8 +50,9 @@ export default function NdaForm({
         </p>
       </div>
 
-      <Field label="Purpose">
+      <Field label="Purpose" id="purpose">
         <textarea
+          id="purpose"
           className={inputClass}
           rows={2}
           value={formData.purpose}
@@ -57,8 +60,9 @@ export default function NdaForm({
         />
       </Field>
 
-      <Field label="Effective Date">
+      <Field label="Effective Date" id="effectiveDate">
         <input
+          id="effectiveDate"
           type="date"
           className={inputClass}
           value={formData.effectiveDate}
@@ -132,8 +136,9 @@ export default function NdaForm({
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Governing Law (State)">
+        <Field label="Governing Law (State)" id="governingLaw">
           <input
+            id="governingLaw"
             type="text"
             className={inputClass}
             placeholder="e.g. Delaware"
@@ -141,8 +146,9 @@ export default function NdaForm({
             onChange={(e) => update("governingLaw", e.target.value)}
           />
         </Field>
-        <Field label="Jurisdiction">
+        <Field label="Jurisdiction" id="jurisdiction">
           <input
+            id="jurisdiction"
             type="text"
             className={inputClass}
             placeholder="e.g. New Castle, DE"
@@ -152,8 +158,9 @@ export default function NdaForm({
         </Field>
       </div>
 
-      <Field label="MNDA Modifications (optional)">
+      <Field label="MNDA Modifications (optional)" id="modifications">
         <textarea
+          id="modifications"
           className={inputClass}
           rows={2}
           placeholder="List any modifications..."
@@ -166,16 +173,18 @@ export default function NdaForm({
 
       <h2 className="text-lg font-semibold text-gray-900">Party 1</h2>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Name">
+        <Field label="Name" id="party1Name">
           <input
+            id="party1Name"
             type="text"
             className={inputClass}
             value={formData.party1Name}
             onChange={(e) => update("party1Name", e.target.value)}
           />
         </Field>
-        <Field label="Title">
+        <Field label="Title" id="party1Title">
           <input
+            id="party1Title"
             type="text"
             className={inputClass}
             value={formData.party1Title}
@@ -184,16 +193,18 @@ export default function NdaForm({
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Company">
+        <Field label="Company" id="party1Company">
           <input
+            id="party1Company"
             type="text"
             className={inputClass}
             value={formData.party1Company}
             onChange={(e) => update("party1Company", e.target.value)}
           />
         </Field>
-        <Field label="Notice Address">
+        <Field label="Notice Address" id="party1Address">
           <input
+            id="party1Address"
             type="text"
             className={inputClass}
             placeholder="Email or postal address"
@@ -207,16 +218,18 @@ export default function NdaForm({
 
       <h2 className="text-lg font-semibold text-gray-900">Party 2</h2>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Name">
+        <Field label="Name" id="party2Name">
           <input
+            id="party2Name"
             type="text"
             className={inputClass}
             value={formData.party2Name}
             onChange={(e) => update("party2Name", e.target.value)}
           />
         </Field>
-        <Field label="Title">
+        <Field label="Title" id="party2Title">
           <input
+            id="party2Title"
             type="text"
             className={inputClass}
             value={formData.party2Title}
@@ -225,16 +238,18 @@ export default function NdaForm({
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Company">
+        <Field label="Company" id="party2Company">
           <input
+            id="party2Company"
             type="text"
             className={inputClass}
             value={formData.party2Company}
             onChange={(e) => update("party2Company", e.target.value)}
           />
         </Field>
-        <Field label="Notice Address">
+        <Field label="Notice Address" id="party2Address">
           <input
+            id="party2Address"
             type="text"
             className={inputClass}
             placeholder="Email or postal address"
