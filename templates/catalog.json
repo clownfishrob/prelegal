@@ -1,0 +1,85 @@
+{
+  "name": "CommonPaper Legal Document Templates",
+  "description": "A collection of standard legal document templates from CommonPaper for use in pre-legal document generation.",
+  "source": "https://github.com/CommonPaper",
+  "license": "CC BY 4.0",
+  "templates": [
+    {
+      "id": "mutual-nda",
+      "name": "Mutual Non-Disclosure Agreement",
+      "files": ["Mutual-NDA.md", "Mutual-NDA-coverpage.md"],
+      "version": "1.0",
+      "source_repo": "https://github.com/CommonPaper/Mutual-NDA"
+    },
+    {
+      "id": "csa",
+      "name": "Cloud Service Agreement",
+      "files": ["CSA.md"],
+      "version": "2.1",
+      "source_repo": "https://github.com/CommonPaper/CSA"
+    },
+    {
+      "id": "sla",
+      "name": "Service Level Agreement",
+      "files": ["SLA.md"],
+      "version": "2.0",
+      "source_repo": "https://github.com/CommonPaper/SLA"
+    },
+    {
+      "id": "dpa",
+      "name": "Data Processing Agreement",
+      "files": ["DPA.md"],
+      "version": "1.0",
+      "source_repo": "https://github.com/CommonPaper/DPA"
+    },
+    {
+      "id": "psa",
+      "name": "Professional Services Agreement",
+      "files": ["PSA.md"],
+      "version": "1.0",
+      "source_repo": "https://github.com/CommonPaper/PSA"
+    },
+    {
+      "id": "design-partner-agreement",
+      "name": "Design Partner Agreement",
+      "files": ["Design-Partner-Agreement.md"],
+      "version": "1.0",
+      "source_repo": "https://github.com/CommonPaper/Design-Partner-Agreement"
+    },
+    {
+      "id": "partnership-agreement",
+      "name": "Partnership Agreement",
+      "files": ["Partnership-Agreement.md"],
+      "version": "1.0",
+      "source_repo": "https://github.com/CommonPaper/Partnership-Agreement"
+    },
+    {
+      "id": "software-license-agreement",
+      "name": "Software License Agreement",
+      "files": ["Software-License-Agreement.md"],
+      "version": "1.1",
+      "source_repo": "https://github.com/CommonPaper/Software-License-Agreement"
+    },
+    {
+      "id": "pilot-agreement",
+      "name": "Pilot Agreement",
+      "files": ["Pilot-Agreement.md"],
+      "version": "1.1",
+      "source_repo": "https://github.com/CommonPaper/Pilot-Agreement"
+    },
+    {
+      "id": "baa",
+      "name": "Business Associate Agreement",
+      "files": ["BAA.md"],
+      "version": "1.0",
+      "source_repo": "https://github.com/CommonPaper/BAA"
+    },
+    {
+      "id": "ai-addendum",
+      "name": "AI Addendum",
+      "files": ["AI-Addendum.md"],
+      "version": "1.0",
+      "source_repo": "https://github.com/CommonPaper/AI-Addendum"
+    }
+  ]
+}
