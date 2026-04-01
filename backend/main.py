@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from database import init_db
 from routers import auth as auth_router
+from routers import chat as chat_router
 from routers import templates as templates_router
 
 FRONTEND_OUT = Path(__file__).parent.parent / "frontend" / "out"
@@ -21,6 +22,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Prelegal API", version="0.1.0", lifespan=lifespan)
 
 app.include_router(auth_router.router)
+app.include_router(chat_router.router)
 app.include_router(templates_router.router)
 
 if FRONTEND_OUT.is_dir():
