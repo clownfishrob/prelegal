@@ -1,14 +1,44 @@
-import fs from "fs";
-import path from "path";
+"use client";
+
+import { useState, useEffect } from "react";
 import NdaCreator from "@/components/NdaCreator";
 
-function loadTemplate(filename: string): string {
-  const templatesDir = path.join(process.cwd(), "..", "templates");
-  return fs.readFileSync(path.join(templatesDir, filename), "utf-8");
-}
-
 export default function Home() {
-  const standardTerms = loadTemplate("Mutual-NDA.md");
+  const [standardTerms, setStandardTerms] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/templates/mutual-nda")
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to load template: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        setStandardTerms(data.content);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">Loading template...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-red-600">Error: {error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
