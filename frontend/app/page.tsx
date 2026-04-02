@@ -1,13 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import NdaCreator from "@/components/NdaCreator";
+import { useState, useRef } from "react";
+import DocumentCreator from "@/components/DocumentCreator";
 
 export default function Home() {
-  const [standardTerms, setStandardTerms] = useState<string>("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   // Auth state
   const [token, setToken] = useState<string | null>(() =>
     typeof window !== "undefined" ? sessionStorage.getItem("prelegal_token") : null
@@ -18,25 +14,31 @@ export default function Home() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Template state
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [templateContent, setTemplateContent] = useState<string | null>(null);
+  const [templateName, setTemplateName] = useState<string | null>(null);
+
   // Download ref
   const downloadRef = useRef<(() => Promise<void>) | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/templates/mutual-nda")
-      .then((res) => {
-        if (!res.ok) throw new Error(`Failed to load template: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        setStandardTerms(data.content);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []);
+  const [templateError, setTemplateError] = useState<string | null>(null);
+
+  async function handleTemplateSelected(id: string) {
+    setTemplateError(null);
+    try {
+      const res = await fetch(`/api/templates/${encodeURIComponent(id)}`);
+      if (!res.ok) throw new Error(`Failed to load template: ${res.status}`);
+      const data = await res.json();
+      setTemplateId(data.id);
+      setTemplateName(data.name);
+      setTemplateContent(data.content);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to load template";
+      setTemplateError(msg);
+    }
+  }
 
   async function handleAuth(e: React.FormEvent) {
     e.preventDefault();
@@ -53,7 +55,6 @@ export default function Home() {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.detail || "Registration failed");
         }
-        // Auto-login after register
       }
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -82,22 +83,6 @@ export default function Home() {
     } finally {
       setIsGenerating(false);
     }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Loading template...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-red-600">Error: {error}</p>
-      </div>
-    );
   }
 
   // Auth gate
@@ -187,26 +172,36 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Mutual NDA Creator
+              {templateName || "Prelegal"}
             </h1>
             <p className="text-sm text-gray-500 mt-1">
-              Chat with AI to generate your Mutual Non-Disclosure Agreement
+              {templateName
+                ? `Chat with AI to generate your ${templateName}`
+                : "Chat with AI to draft your legal document"}
             </p>
           </div>
           <button
             onClick={handleDownload}
-            disabled={isGenerating}
+            disabled={isGenerating || !templateContent}
             className="rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isGenerating ? "Generating..." : "Download PDF"}
           </button>
         </div>
+        {templateError && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-2">
+            <p className="text-sm text-red-600">{templateError}</p>
+          </div>
+        )}
       </header>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <NdaCreator
-          standardTerms={standardTerms}
+        <DocumentCreator
+          templateContent={templateContent}
+          templateName={templateName}
+          templateId={templateId}
           token={token}
           downloadRef={downloadRef}
+          onTemplateSelected={handleTemplateSelected}
         />
       </main>
     </div>

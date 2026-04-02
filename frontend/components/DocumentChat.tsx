@@ -1,28 +1,34 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import type { NdaFormData } from "@/lib/nda-template";
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
 }
 
-interface NdaChatProps {
-  onFieldsExtracted: (fields: Partial<NdaFormData>) => void;
+interface DocumentChatProps {
   token: string;
+  templateId: string | null;
+  onFieldsExtracted: (fields: Record<string, string>) => void;
+  onTemplateSelected: (templateId: string) => void;
 }
 
-export default function NdaChat({
-  onFieldsExtracted,
+export default function DocumentChat({
   token,
-}: NdaChatProps) {
+  templateId,
+  onFieldsExtracted,
+  onTemplateSelected,
+}: DocumentChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
+  const templateIdRef = useRef(templateId);
+  templateIdRef.current = templateId;
+  const prevTemplateIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -34,17 +40,33 @@ export default function NdaChat({
     sendToApi([]);
   }, []);
 
+  // Reset conversation when transitioning from selection to field-gathering
+  useEffect(() => {
+    if (templateId && prevTemplateIdRef.current === null) {
+      prevTemplateIdRef.current = templateId;
+      setMessages([]);
+      sendToApi([]);
+    }
+  }, [templateId]);
+
   async function sendToApi(chatMessages: ChatMessage[]) {
     setLoading(true);
     setError(null);
     try {
+      const payload: { messages: ChatMessage[]; template_id?: string } = {
+        messages: chatMessages,
+      };
+      if (templateIdRef.current) {
+        payload.template_id = templateIdRef.current;
+      }
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ messages: chatMessages }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const detail = await res.json().catch(() => ({}));
@@ -56,6 +78,11 @@ export default function NdaChat({
         content: data.message,
       };
       setMessages((prev) => [...prev, assistantMsg]);
+
+      if (data.template_id && !templateIdRef.current) {
+        onTemplateSelected(data.template_id);
+      }
+
       if (data.fields && Object.keys(data.fields).length > 0) {
         onFieldsExtracted(data.fields);
       }
@@ -124,7 +151,11 @@ export default function NdaChat({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Tell me about your NDA..."
+            placeholder={
+              templateId
+                ? "Tell me about your document details..."
+                : "Tell me what legal document you need..."
+            }
             className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
             rows={2}
             disabled={loading}

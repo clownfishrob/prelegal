@@ -7,12 +7,7 @@ import {
   pdf,
 } from "@react-pdf/renderer";
 import { createElement } from "react";
-import { NdaFormData } from "./nda-template";
-import {
-  fillPlaceholder,
-  formatDate,
-  escapeHtml,
-} from "@/components/NdaPreview";
+import { fillTemplate } from "./template-utils";
 
 const styles = StyleSheet.create({
   page: {
@@ -27,24 +22,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: "center",
   },
+  subtitle: {
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 8,
+    marginTop: 12,
+  },
   paragraph: {
     marginBottom: 6,
     textAlign: "justify",
   },
   bold: {
     fontFamily: "Helvetica-Bold",
-  },
-  label: {
-    fontFamily: "Helvetica-Bold",
-    marginBottom: 2,
-  },
-  fieldValue: {
-    marginBottom: 8,
-  },
-  divider: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#cccccc",
-    marginVertical: 16,
   },
   table: {
     marginTop: 12,
@@ -67,8 +56,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     fontSize: 9,
   },
-  tableCellLabel: {
-    width: 80,
+  tableCellBold: {
+    flex: 1,
     paddingHorizontal: 4,
     fontSize: 9,
     fontFamily: "Helvetica-Bold",
@@ -81,115 +70,53 @@ const styles = StyleSheet.create({
   },
 });
 
-function CoverPagePdf({ formData }: { formData: NdaFormData }) {
-  const mndaTerm =
-    formData.mndaTermType === "expires"
-      ? `Expires ${formData.mndaTermYears} year(s) from Effective Date.`
-      : "Continues until terminated in accordance with the terms of the MNDA.";
-
-  const confidentialityTerm =
-    formData.confidentialityTermType === "years"
-      ? `${formData.confidentialityTermYears} year(s) from Effective Date, but in the case of trade secrets until Confidential Information is no longer considered a trade secret under applicable laws.`
-      : "In perpetuity.";
-
-  const fp = (val: string) => fillPlaceholder(val, "___________");
-
-  const partyRows = [
-    { label: "Name", v1: fp(formData.party1Name), v2: fp(formData.party2Name) },
-    { label: "Title", v1: fp(formData.party1Title), v2: fp(formData.party2Title) },
-    { label: "Company", v1: fp(formData.party1Company), v2: fp(formData.party2Company) },
-    { label: "Notice Address", v1: fp(formData.party1Address), v2: fp(formData.party2Address) },
-    { label: "Date", v1: formatDate(formData.effectiveDate), v2: formatDate(formData.effectiveDate) },
-  ];
-
-  return createElement(
-    View,
-    null,
-    createElement(Text, { style: styles.title }, "Mutual Non-Disclosure Agreement"),
-    createElement(
-      Text,
-      { style: styles.paragraph },
-      'This Mutual Non-Disclosure Agreement (the "MNDA") consists of: (1) this Cover Page and (2) the Common Paper Mutual NDA Standard Terms Version 1.0.'
-    ),
-    createElement(Text, { style: styles.label }, "Purpose:"),
-    createElement(Text, { style: styles.fieldValue }, fp(formData.purpose)),
-    createElement(Text, { style: styles.label }, "Effective Date:"),
-    createElement(Text, { style: styles.fieldValue }, formatDate(formData.effectiveDate)),
-    createElement(Text, { style: styles.label }, "MNDA Term:"),
-    createElement(Text, { style: styles.fieldValue }, mndaTerm),
-    createElement(Text, { style: styles.label }, "Term of Confidentiality:"),
-    createElement(Text, { style: styles.fieldValue }, confidentialityTerm),
-    createElement(Text, { style: styles.label }, "Governing Law:"),
-    createElement(Text, { style: styles.fieldValue }, fp(formData.governingLaw)),
-    createElement(Text, { style: styles.label }, "Jurisdiction:"),
-    createElement(Text, { style: styles.fieldValue }, fp(formData.jurisdiction)),
-    formData.modifications
-      ? createElement(
-          View,
-          null,
-          createElement(Text, { style: styles.label }, "MNDA Modifications:"),
-          createElement(Text, { style: styles.fieldValue }, formData.modifications)
-        )
-      : null,
-    createElement(
-      Text,
-      { style: [styles.paragraph, { marginTop: 12 }] },
-      "By signing this Cover Page, each party agrees to enter into this MNDA as of the Effective Date."
-    ),
-    createElement(
-      View,
-      { style: styles.table },
-      createElement(
-        View,
-        { style: styles.tableHeader },
-        createElement(Text, { style: styles.tableCellLabel }, ""),
-        createElement(Text, { style: [styles.tableCell, styles.bold] }, "Party 1"),
-        createElement(Text, { style: [styles.tableCell, styles.bold] }, "Party 2")
-      ),
-      ...partyRows.map((row) =>
-        createElement(
-          View,
-          { key: row.label, style: styles.tableRow },
-          createElement(Text, { style: styles.tableCellLabel }, row.label),
-          createElement(Text, { style: styles.tableCell }, row.v1),
-          createElement(Text, { style: styles.tableCell }, row.v2)
-        )
-      )
-    )
-  );
-}
-
-function parseStandardTermsForPdf(template: string, formData: NdaFormData) {
-  let text = template;
-  text = text.replace(/<span class="coverpage_link">Purpose<\/span>/g, escapeHtml(fillPlaceholder(formData.purpose, "Purpose")));
-  text = text.replace(/<span class="coverpage_link">Effective Date<\/span>/g, escapeHtml(formatDate(formData.effectiveDate)));
-  text = text.replace(/<span class="coverpage_link">MNDA Term<\/span>/g,
-    escapeHtml(formData.mndaTermType === "expires" ? `${formData.mndaTermYears} year(s)` : "until terminated")
-  );
-  text = text.replace(/<span class="coverpage_link">Term of Confidentiality<\/span>/g,
-    escapeHtml(formData.confidentialityTermType === "years" ? `${formData.confidentialityTermYears} year(s)` : "perpetuity")
-  );
-  text = text.replace(/<span class="coverpage_link">Governing Law<\/span>/g, escapeHtml(fillPlaceholder(formData.governingLaw, "___________")));
-  text = text.replace(/<span class="coverpage_link">Jurisdiction<\/span>/g, escapeHtml(fillPlaceholder(formData.jurisdiction, "___________")));
-  text = text.replace(/<span[^>]*>/g, "");
-  text = text.replace(/<\/span>/g, "");
-
-  const lines = text.split("\n").filter((l) => l.trim() !== "");
+function markdownToPdfElements(markdown: string) {
+  const lines = markdown.split("\n").filter((l) => l.trim() !== "");
   const elements: ReturnType<typeof createElement>[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    // Strip markdown links and bold markers for PDF
-    let cleanLine = line.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
-    cleanLine = cleanLine.replace(/\*\*/g, "");
+    let clean = line.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+    clean = clean.replace(/\*\*/g, "");
 
     if (line.startsWith("# ")) {
       elements.push(
-        createElement(Text, { key: `line-${i}`, style: styles.title }, cleanLine.slice(2))
+        createElement(Text, { key: `l-${i}`, style: styles.title }, clean.slice(2))
+      );
+    } else if (line.startsWith("## ")) {
+      elements.push(
+        createElement(Text, { key: `l-${i}`, style: styles.subtitle }, clean.slice(3))
+      );
+    } else if (line.startsWith("|")) {
+      const tableLines: string[] = [line];
+      while (i + 1 < lines.length && lines[i + 1].startsWith("|")) {
+        i++;
+        tableLines.push(lines[i]);
+      }
+      const rows = tableLines.filter((l) => !l.match(/^\|[\s:-]+\|/));
+      const tableRows = rows.map((row, ri) => {
+        const cells = row
+          .split("|")
+          .filter((c) => c.trim() !== "")
+          .map((c) => c.trim().replace(/\*\*/g, ""));
+        return createElement(
+          View,
+          { key: `tr-${i}-${ri}`, style: ri === 0 ? styles.tableHeader : styles.tableRow },
+          ...cells.map((cell, ci) =>
+            createElement(
+              Text,
+              { key: `tc-${ci}`, style: ri === 0 ? styles.tableCellBold : styles.tableCell },
+              cell
+            )
+          )
+        );
+      });
+      elements.push(
+        createElement(View, { key: `tbl-${i}`, style: styles.table }, ...tableRows)
       );
     } else {
       elements.push(
-        createElement(Text, { key: `line-${i}`, style: styles.paragraph }, cleanLine)
+        createElement(Text, { key: `l-${i}`, style: styles.paragraph }, clean)
       );
     }
   }
@@ -197,31 +124,28 @@ function parseStandardTermsForPdf(template: string, formData: NdaFormData) {
   return elements;
 }
 
-export async function generateNdaPdf(
-  standardTerms: string,
-  formData: NdaFormData
+export async function generatePdf(
+  templateContent: string,
+  fields: Record<string, string>,
+  documentName: string
 ): Promise<Blob> {
+  const filled = fillTemplate(templateContent, fields);
+  const contentElements = markdownToPdfElements(filled);
+
   const doc = createElement(
     Document,
     null,
     createElement(
       Page,
       { size: "A4", style: styles.page, wrap: true },
-      createElement(CoverPagePdf, { formData }),
-      createElement(View, { style: styles.divider }),
-      createElement(
-        View,
-        { wrap: true },
-        ...parseStandardTermsForPdf(standardTerms, formData)
-      ),
+      createElement(View, { wrap: true }, ...contentElements),
       createElement(
         Text,
         { style: styles.footer },
-        "Common Paper Mutual Non-Disclosure Agreement (Version 1.0) free to use under CC BY 4.0."
+        `CommonPaper ${documentName} — free to use under CC BY 4.0.`
       )
     )
   );
 
-  const blob = await pdf(doc).toBlob();
-  return blob;
+  return await pdf(doc).toBlob();
 }
